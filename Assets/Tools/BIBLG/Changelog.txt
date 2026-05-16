@@ -1,0 +1,16 @@
+V1.1 (Released 11/21/2022)
+- Added a new script to tile prefabs named TileType.
+- Added a new prefab under the Resources folder, named DecorPlant.
+- Added a "Level Decorations" section, where you can choose to generate decorations in your level. Currently there is only one.
+- Added a "Tile Type" field under the "Tile Prefab" field for each tile. It should only be changed if the tile's type is incorrect.
+- Added a "Tile Color" label to the tile color field.
+- Since the Custom tile lighting color type does not affect the minimum and maximum tile light strength values, those fields are now hidden while it is selected.
+- Updated the demo scene.
+- And made some other smaller changes.
+
+V1.0.1 (Released 11/16/2022)
+- Fixed a bug where the NavMesh for a generated level would be offset from the actual position of the level.
+- Renamed the "Bake The Navmesh?" toggle to "Bake NavMesh?" and slightly changed the description of it's info box.
+
+V1.0 (Released 11/15/2022)
+- The first release of Baldi's Image Based Level Generator.
