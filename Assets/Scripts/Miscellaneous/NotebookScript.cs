@@ -70,6 +70,12 @@ public class NotebookScript : MonoBehaviour
         respawnTime = 120f;
         gc.CollectNotebook(1);
 
+        // ADD THIS TEMPORARILY
+        Debug.Log("Notebook collected, trying to find HUD...");
+        var hud = FindObjectOfType<NotebookHUDManager>();
+        Debug.Log("HUD found: " + (hud != null));
+        hud?.OnNotebookCollected();
+
         if (AdditionalGameCustomizer.Instance?.NoYCTP == true)
         {
             NoYCTPMode();
