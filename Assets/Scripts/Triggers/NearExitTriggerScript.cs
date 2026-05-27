@@ -8,6 +8,8 @@ public class NearExitTriggerScript : MonoBehaviour
 	{
 		if (gc.exitsReached < 3 & gc.finaleMode & other.CompareTag("Player"))
 		{
+        FindObjectOfType<ExitHUDManager>()?.OnExitUsed();
+	
 			gc.ExitReached();
 			es.Enable();
 			if (gc.baldiScrpt.isActiveAndEnabled)

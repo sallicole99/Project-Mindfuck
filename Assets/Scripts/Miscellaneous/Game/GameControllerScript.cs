@@ -145,6 +145,10 @@ public class GameControllerScript : MonoBehaviour
     #endregion
 
     #region GameOverLogic
+    // Death type set by PlayerScript before triggering game over
+    public enum DeathType { Baldi, Faint }
+    [HideInInspector] public DeathType currentDeathType = DeathType.Baldi;
+
     private void GameOverFunction()
     {
         if (!player.gameOver) return;
@@ -153,7 +157,13 @@ public class GameControllerScript : MonoBehaviour
         gamaOvarDevice.ignoreListenerPause = true;
         Time.timeScale = 0f;
 
-        PlayerCamera.farClipPlane = gameOverDelay * 400f;
+        // Baldi death — shrink camera clip plane for classic blackout effect
+        if (currentDeathType == DeathType.Baldi)
+        {
+            PlayerCamera.farClipPlane = gameOverDelay * 400f;
+        }
+        // Faint death — camera stays exactly where player is, no clip plane trick
+
         gameOverDelay -= Time.unscaledDeltaTime;
 
         if (!gamaOvarDevice.isPlaying)

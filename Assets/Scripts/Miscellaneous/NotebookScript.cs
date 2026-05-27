@@ -64,27 +64,19 @@ public class NotebookScript : MonoBehaviour
     }
 
     private void CollectNotebook()
-    {
-        transform.position = new Vector3(transform.position.x, -20f, transform.position.z);
-        up = false;
-        respawnTime = 120f;
-        gc.CollectNotebook(1);
+{
+    transform.position = new Vector3(transform.position.x, -20f, transform.position.z);
+    up = false;
+    respawnTime = 120f;
+    gc.CollectNotebook(1);
 
-        // ADD THIS TEMPORARILY
-        Debug.Log("Notebook collected, trying to find HUD...");
-        var hud = FindObjectOfType<NotebookHUDManager>();
-        Debug.Log("HUD found: " + (hud != null));
-        hud?.OnNotebookCollected();
+    FindObjectOfType<NotebookHUDManager>()?.OnNotebookCollected();
 
-        if (AdditionalGameCustomizer.Instance?.NoYCTP == true)
-        {
-            NoYCTPMode();
-        }
-        else
-        {
-            StartLearningGame();
-        }
-    }
+    if (AdditionalGameCustomizer.Instance?.NoYCTP == true)
+        NoYCTPMode();
+    else
+        StartLearningGame();
+}
     #endregion
 
     #region No YCTP Mode Logic
@@ -94,9 +86,10 @@ public class NotebookScript : MonoBehaviour
         gc.Icon.Play("IconSpin", -1, 0f);
         audioDevice.PlayClip(gc.aud_Collected, false, 1f);
 
-        if (gc.player.stamina < 100f)
-        {
-            gc.player.SetStamina(PlayerScript.StaminaChangeMode.Set, 100f);
+        var staminaSys = FindObjectOfType<StaminaSystem>();
+        if (staminaSys != null && gc.player.stamina < 150f)
+       {
+       staminaSys.SetStamina(150f);
         }
 
         if (gc.notebooks == 1 && !gc.spoopMode)

@@ -30,6 +30,7 @@ public class PlayerScript : MonoBehaviour
 		gc = FindObjectOfType<GameControllerScript>();
 		cc = GetComponent<CharacterController>();
 		CamCam = FindObjectOfType<CameraScript>();
+		staminaSystem = GetComponent<StaminaSystem>();
 		sensitivityActive = PlayerPrefs.GetInt("AnalogMove") == 1;
 		height = transform.position.y;
 		stamina = maxStamina;
@@ -149,12 +150,23 @@ public class PlayerScript : MonoBehaviour
 
 	private void AdjustSpeedAndSensitivity(Vector3 movement, Vector3 lateralMovement)
 	{
-		bool isRunning = Singleton<InputManager>.Instance.GetActionKey(InputAction.Run) && stamina > 0f;
-		playerSpeed = isRunning ? runSpeed : walkSpeed;
+		bool shiftHeld = Singleton<InputManager>.Instance.GetActionKey(InputAction.Run);
+		bool tabHeld = Input.GetKey(KeyCode.Tab);
+
+		bool isSprinting = shiftHeld && tabHeld;
+		bool isRunning = shiftHeld && !tabHeld;
+
+		if (isSprinting)
+			playerSpeed = sprintSpeed;
+		else if (isRunning)
+			playerSpeed = runSpeed;
+		else
+			playerSpeed = walkSpeed;
+
 		sensitivity = sensitivityActive ? Mathf.Clamp((movement + lateralMovement).magnitude, 0f, 1f) : 1f;
 		moveDirection = (movement + lateralMovement).normalized * playerSpeed * sensitivity * Time.deltaTime;
 
-		if (isRunning && secondaryMovementVelocity.magnitude > 0.1f && !hugging && !sweeping)
+		if ((isRunning || isSprinting) && secondaryMovementVelocity.magnitude > 0.1f && !hugging && !sweeping)
 		{
 			ResetGuilt("running", 0.1f);
 		}
@@ -180,50 +192,12 @@ public class PlayerScript : MonoBehaviour
 	#region Stamina & Guilt
 	private void StaminaCheck()
 	{
-		if (!isSliding) staminaPending = stamina;
-
-		if (!sweeping && Singleton<InputManager>.Instance.GetActionKey(InputAction.Run) && stamina > 0f && cc.velocity.magnitude > 0.1f)
-		{
-			stamina -= staminaDrop * Time.fixedDeltaTime;
-		}
-		else if (stamina < maxStamina && cc.velocity.magnitude < 0.1f)
-		{
-			stamina += staminaRise * Time.fixedDeltaTime;
-		}
-
-		_ = staminaPending / maxStamina * 136f;
-
-		if (staminaPending > 100f && staminaPending <= 200f)
-		{
-			_ = 136f + (staminaPending - 100f) / 100f * 7f;
-		}
-
-		SliderCustomization();
+		// Fully handled by StaminaSystem.cs
 	}
 
 	private void SliderCustomization()
 	{
-		if (AdditionalGameCustomizer.Instance != null)
-		{
-			switch (AdditionalGameCustomizer.Instance.StaminaStyle)
-			{
-				case AdditionalGameCustomizer.StaminaDisplay.Old:
-					staminaBar1.value = stamina / maxStamina * 100f;
-					break;
-				case AdditionalGameCustomizer.StaminaDisplay.PreOld:
-					staminaBar2.value = stamina / maxStamina * 100f;
-					break;
-				case AdditionalGameCustomizer.StaminaDisplay.Normal:
-					staminaBar3.value = Mathf.MoveTowards(staminaBar3.value, stamina / maxStamina * 100f, 50f * Time.deltaTime * 6f);
-					break;
-				case AdditionalGameCustomizer.StaminaDisplay.Vertical:
-					staminaBar4.value = Mathf.MoveTowards(staminaBar4.value, stamina / maxStamina * 100f, 50f * Time.deltaTime * 6f);
-					break;
-				case AdditionalGameCustomizer.StaminaDisplay.Circle:
-					staminaBar5.value = Mathf.MoveTowards(staminaBar5.value, stamina / maxStamina * 100f, 50f * Time.deltaTime * 6f);
-					break;
-			}
-		}
+		// Legacy slider code kept for compatibility but StaminaSystem handles UI now
 	}
 
 	private IEnumerator StaminometerSlide()
@@ -258,22 +232,50 @@ public class PlayerScript : MonoBehaviour
 
 	public void SetStamina(StaminaChangeMode mode, float value)
 	{
-		if (value < 0f) value = 0f;
+		if (staminaSystem != null)
+		{
+			float current = stamina;
+			switch (mode)
+			{
+				case StaminaChangeMode.Add:      current += value; break;
+				case StaminaChangeMode.Remove:   current -= value; break;
+				case StaminaChangeMode.Multiply: current *= value; break;
+				case StaminaChangeMode.Divide:   if (value != 0f) current /= value; break;
+				case StaminaChangeMode.Set:      current = value; break;
+			}
+			staminaSystem.SetStamina(current);
+			return;
+		}
 
+		// Fallback if StaminaSystem not present
+		if (value < 0f) value = 0f;
 		switch (mode)
 		{
-			case StaminaChangeMode.Add: stamina += value; break;
-			case StaminaChangeMode.Remove: stamina -= value; break;
+			case StaminaChangeMode.Add:      stamina += value; break;
+			case StaminaChangeMode.Remove:   stamina -= value; break;
 			case StaminaChangeMode.Multiply: stamina *= value; break;
-			case StaminaChangeMode.Divide: if (value != 0f) stamina /= value; break;
-			case StaminaChangeMode.Set: stamina = value; break;
-		}
-
-		if (Mathf.Abs(stamina - staminaPending) >= 10f)
-		{
-			StartCoroutine(StaminometerSlide());
+			case StaminaChangeMode.Divide:   if (value != 0f) stamina /= value; break;
+			case StaminaChangeMode.Set:      stamina = value; break;
 		}
 	}
+
+	// Baldi catches player — uses classic clip plane blackout
+	public void TriggerBaldiGameOver()
+	{
+		gc.currentDeathType = GameControllerScript.DeathType.Baldi;
+		gameOver = true;
+		RenderSettings.skybox = blackSky;
+		StartCoroutine(KeepTheHudOff());
+	}
+
+	// Stamina faint — camera stays on player, no clip plane trick
+	// Add this to PlayerScript.cs
+    public void TriggerGameOver()
+{
+    gameOver = true;
+    RenderSettings.skybox = blackSky;
+    StartCoroutine(KeepTheHudOff());
+}
 	#endregion
 
 	#region Triggers & Game Events
@@ -281,9 +283,7 @@ public class PlayerScript : MonoBehaviour
 	{
 		if (other.transform.name == "Baldi" & !gc.debugMode)
 		{
-			gameOver = true;
-			RenderSettings.skybox = blackSky;
-			StartCoroutine(KeepTheHudOff());
+			TriggerBaldiGameOver();
 		}
 		else if (other.transform.name == "Playtime" & !jumpRope & playtime.playCool <= 0f)
 		{
@@ -381,20 +381,23 @@ public class PlayerScript : MonoBehaviour
 	[SerializeField] private GameObject jumpRopeGame, hud;
 	[SerializeField] private Material blackSky;
 
-	[Header("Staminometer References")]
+	[Header("Staminometer References (Legacy)")]
 	[SerializeField] private Slider staminaBar1;
 	[SerializeField] private Slider staminaBar2, staminaBar3, staminaBar4, staminaBar5;
 
 	[Header("Movement Settings")]
-	[SerializeField] private float walkSpeed = 12f;
-	[SerializeField] private float runSpeed = 18f, gravity = 2763f;
-	public float stamina = 100f, maxStamina = 100f, forceLookSpeed = 246f;
+	[SerializeField] public float walkSpeed  = 12f;
+	[SerializeField] public float runSpeed   = 18f;
+	[SerializeField] public float sprintSpeed = 28f;
+	[SerializeField] private float gravity   = 2763f;
+	public float stamina = 100f, maxStamina = 150f, forceLookSpeed = 246f;
 	#endregion
 
 	#region Internal State
 	[HideInInspector] public GameControllerScript gc;
 	private CharacterController cc;
 	private CameraScript CamCam;
+	private StaminaSystem staminaSystem;
 	private Quaternion playerRotation;
 	private bool sensitivityActive, sweeping;
 	private float sensitivity, playerSpeed, mouseSensitivity, jumpRopeSpeedMultiplier = 0.4f;
