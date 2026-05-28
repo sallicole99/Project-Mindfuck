@@ -7,18 +7,14 @@ public class OutdoorZone : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-
-        StaminaSystem stamina = other.GetComponent<StaminaSystem>();
-        if (stamina != null)
-            stamina.EnterOutdoors();
+        other.GetComponent<StaminaSystem>()?.EnterOutdoors();
+        other.GetComponent<HPSystem>()?.EnterOutdoors();
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-
-        StaminaSystem stamina = other.GetComponent<StaminaSystem>();
-        if (stamina != null)
-            stamina.ExitOutdoors();
+        other.GetComponent<StaminaSystem>()?.ExitOutdoors();
+        other.GetComponent<HPSystem>()?.ExitOutdoors();
     }
 }

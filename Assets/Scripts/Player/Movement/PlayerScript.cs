@@ -282,18 +282,13 @@ public class PlayerScript : MonoBehaviour
 	private void OnTriggerEnter(Collider other)
 	{
 		if (other.transform.name == "Baldi" & !gc.debugMode)
-		{
-			TriggerBaldiGameOver();
-		}
-		else if (other.transform.name == "Playtime" & !jumpRope & playtime.playCool <= 0f)
-		{
-			ActivateJumpRope();
-		}
-
-		if (other.name == "OfficeTrigger")
-		{
-			alsoInOffice = true;
-		}
+{
+    var hp = GetComponent<HPSystem>();
+    if (hp != null)
+        hp.TakeBaldiDamage();
+    else
+        TriggerBaldiGameOver();
+    }
 	}
 
 	private void OnTriggerStay(Collider other)
