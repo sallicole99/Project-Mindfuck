@@ -36,11 +36,12 @@ public class BaseItem : MonoBehaviour
     [Tooltip("The color of the item name")] public Color NameColor = Color.black;
 
     [Header("Sprite")]
-    [Header("Sprite")]
     [Tooltip("Sprite of the item used for pickups")] public Texture BigSprite;
     [Tooltip("Sprite of the item used in the HUD")] public Texture SmallSprite;
 
     [Header("Settings")]
+    [Tooltip("Unique integer ID — must match the ID set on PickupScript in the Inspector")]
+    public int ItemID;
     [Tooltip("How many uses the item has")] public int Uses = 1;
     #endregion
 }
